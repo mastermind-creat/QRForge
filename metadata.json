@@ -1,0 +1,6 @@
+{
+  "name": "QRForge",
+  "description": "Mobile-first glassmorphic QR code generator with live preview, deep customization, multiple QR formats, and offline-capable library storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
