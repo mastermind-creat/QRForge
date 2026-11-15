@@ -107,4 +107,37 @@ export interface CryptoFormData {
   customUri: string;
 }
 
-export type ActiveTab = 'create' | 'library' | 'settings';
+export type ActiveTab = 'create' | 'scan' | 'library' | 'settings';
+
+export interface ParsedQRField {
+  key: string;
+  label: string;
+  value: string;
+  sensitive?: boolean;
+  copyable?: boolean;
+  mono?: boolean;
+}
+
+export interface ParsedQRAction {
+  id: string;
+  label: string;
+  kind: 'link' | 'copy' | 'download-vcf' | 'download-ics' | 'maps';
+  href?: string;
+  copyValue?: string;
+  filename?: string;
+  fileContent?: string;
+  primary?: boolean;
+}
+
+export interface ParsedQRResult {
+  type: QRType;
+  typeLabel: string;
+  raw: string;
+  title: string;
+  subtitle: string;
+  fields: ParsedQRField[];
+  actions: ParsedQRAction[];
+  formValues: Record<string, any>;
+  jsonPretty?: string;
+  securityNote?: string;
+}

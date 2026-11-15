@@ -46,12 +46,18 @@ A mobile-first, glassmorphic Progressive Web App (PWA) QR code generator built w
    - Card details bottom-sheet on mobile / modal on desktop: re-download, copy, duplicate, edit, delete.
    - Export and import library backups as JSON files.
 
-6. **Glassmorphism Aesthetic & Mobile Ergonomics**:
+6. **QR Code Scanner & Structured Output**:
+   - **Live Camera Scanning**: Real-time camera scanning (`jsqr`) with front/back camera switching and flashlight/torch toggle.
+   - **Image Upload, Drop & Paste**: Decode QR codes from PNG, JPG, WebP, or SVG files or pasted clipboard screenshots (`Ctrl/Cmd+V`), including inverted light-on-dark codes.
+   - **Structured Format Parser**: Automatically identifies and extracts structured fields for WiFi (with password reveal), vCard/MECARD (1-tap `.vcf` export), iCalendar events (1-tap `.ics` export), URLs (host, path, query params), Geo coordinates (Maps link), Email, Phone, SMS, WhatsApp, Crypto/UPI payments, and formatted JSON payloads.
+   - **Generator & Library Integration**: Save any scanned QR directly to the offline library or open its parsed fields inside the Create tab to customize and re-export.
+
+7. **Glassmorphism Aesthetic & Mobile Ergonomics**:
    - Palette: Deep black/navy `#05060f` to `#0a1230`, electric blue primary (`#2f6bff` / `#4da3ff`), crisp white text, and crimson red `#ff3b4e` accent.
    - CSS-animated glowing ambient orbs with `prefers-reduced-motion` compliance.
    - Designed for 360px touch viewports with touch targets $\ge 44px$ and 16px minimum input font to prevent iOS Safari auto-zoom.
    - Sticky bottom action bar on mobile Create screen.
-   - Bottom tab bar on mobile (Create | Library | Settings).
+   - Bottom tab bar on mobile (Create | Scan | Library | Settings).
    - PWA install button with dedicated iOS Safari "Add to Home Screen" instructions.
 
 ---

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Library, Settings } from 'lucide-react';
+import { Sparkles, ScanLine, Library, Settings } from 'lucide-react';
 import { ActiveTab } from '../types/qr';
 
 interface BottomNavProps {
@@ -18,7 +18,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#05060f]/90 backdrop-blur-2xl border-t border-white/10 pb-safe shadow-2xl"
       aria-label="Mobile Navigation"
     >
-      <div className="grid grid-cols-3 items-center h-16 max-w-lg mx-auto px-3">
+      <div className="grid grid-cols-4 items-center h-16 max-w-lg mx-auto px-2">
         {/* Create Tab */}
         <button
           onClick={() => setActiveTab('create')}
@@ -35,6 +35,24 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             )}
           </div>
           <span className="text-[11px] font-semibold mt-1 tracking-tight">Create</span>
+        </button>
+
+        {/* Scan Tab */}
+        <button
+          onClick={() => setActiveTab('scan')}
+          className={`flex flex-col items-center justify-center min-h-[48px] relative transition-colors ${
+            activeTab === 'scan' ? 'text-[#4da3ff]' : 'text-white/50 hover:text-white/80'
+          }`}
+          aria-label="Scan QR Code"
+          aria-current={activeTab === 'scan' ? 'page' : undefined}
+        >
+          <div className="relative">
+            <ScanLine className="w-5 h-5" />
+            {activeTab === 'scan' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-[#2f6bff]" />
+            )}
+          </div>
+          <span className="text-[11px] font-semibold mt-1 tracking-tight">Scan</span>
         </button>
 
         {/* Library Tab */}

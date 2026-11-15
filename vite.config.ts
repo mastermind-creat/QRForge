@@ -53,6 +53,13 @@ export default defineConfig(() => {
               icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
             },
             {
+              name: 'Scan QR Code',
+              short_name: 'Scan',
+              description: 'Scan and parse a QR code',
+              url: '/?tab=scan',
+              icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+            },
+            {
               name: 'My Library',
               short_name: 'Library',
               description: 'Open saved QR code collection',

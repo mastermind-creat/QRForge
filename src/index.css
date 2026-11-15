@@ -57,10 +57,22 @@
   }
 }
 
+@keyframes scanLine {
+  0%, 100% {
+    transform: translateY(-88px);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(88px);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-orb-1,
   .animate-orb-2,
-  .animate-orb-3 {
+  .animate-orb-3,
+  .animate-scan-line {
     animation: none !important;
   }
 }
@@ -78,6 +90,11 @@
 .animate-orb-3 {
   animation: floatOrb3 18s ease-in-out infinite;
   will-change: transform;
+}
+
+.animate-scan-line {
+  animation: scanLine 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 /* Glassmorphism helpers */

@@ -1,5 +1,5 @@
 import React from 'react';
-import { QrCode, Library, Settings, Sparkles } from 'lucide-react';
+import { QrCode, Library, Settings, Sparkles, ScanLine } from 'lucide-react';
 import { ActiveTab } from '../types/qr';
 import { PWAInstallButton } from './PWAInstallButton';
 import { OfflineIndicator } from './OfflineIndicator';
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
               activeTab === 'create'
                 ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
                 : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -55,8 +55,20 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('scan')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
+              activeTab === 'scan'
+                ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ScanLine className="w-4 h-4" />
+            <span>Scan</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('library')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
               activeTab === 'library'
                 ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
                 : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -73,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
                 : 'text-white/70 hover:text-white hover:bg-white/5'

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   ActiveTab,
+  ParsedQRResult,
   QRStyleSettings,
   QRType,
   SavedQRItem,
@@ -31,6 +32,7 @@ import { StickyActionBar } from './components/StickyActionBar';
 import { LibraryView } from './components/LibraryView';
 import { QRDetailsModal } from './components/QRDetailsModal';
 import { SettingsView } from './components/SettingsView';
+import { ScannerView } from './components/ScannerView';
 import { downloadBlob, renderQRCodeToCanvas } from './utils/qrRenderer';
 import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -43,8 +45,17 @@ const DEFAULT_STYLE: QRStyleSettings = {
   logo: null,
 };
 
+function getInitialTab(): ActiveTab {
+  if (typeof window === 'undefined') return 'create';
+  const param = new URLSearchParams(window.location.search).get('tab');
+  if (param === 'scan' || param === 'library' || param === 'settings' || param === 'create') {
+    return param;
+  }
+  return 'create';
+}
+
 function MainApp() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('create');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(getInitialTab);
   const [currentType, setCurrentType] = useState<QRType>('url');
   const [formValues, setFormValues] = useState<Record<string, any>>(() =>
     getDefaultFormValues('url')
@@ -106,6 +117,14 @@ function MainApp() {
     setStyle(item.style || DEFAULT_STYLE);
     setActiveTab('create');
     showToast(`Loaded "${item.name}" into editor`, 'info');
+  };
+
+  // Load from Scanner into Generator
+  const handleLoadFromScanner = (result: ParsedQRResult) => {
+    setCurrentType(result.type);
+    setFormValues(result.formValues || getDefaultFormValues(result.type));
+    setActiveTab('create');
+    showToast(`Loaded ${result.typeLabel} into generator`, 'info');
   };
 
   // Mobile Sticky Bar Quick Download
@@ -284,6 +303,14 @@ function MainApp() {
               onSaveToLibrary={handleStickySave}
             />
           </div>
+        )}
+
+        {/* Scan Tab */}
+        {activeTab === 'scan' && (
+          <ScannerView
+            onLoadInCreator={handleLoadFromScanner}
+            onSaveToLibrary={handleSaveToLibrary}
+          />
         )}
 
         {/* Library Tab */}
