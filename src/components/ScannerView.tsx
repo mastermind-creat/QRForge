@@ -1041,8 +1041,8 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
                       <div
                         className={`relative rounded-2xl ${
                           isViewfinderFullscreen
-                            ? 'w-64 h-64 sm:w-80 sm:h-80 shadow-[0_0_0_9999px_rgba(5,6,15,0.45)]'
-                            : 'w-56 h-56 sm:w-64 sm:h-64 shadow-[0_0_0_9999px_rgba(5,6,15,0.3)]'
+                            ? 'w-[82vw] max-w-[340px] sm:w-[370px] sm:max-w-[370px] aspect-square shadow-[0_0_0_9999px_rgba(5,6,15,0.45)]'
+                            : 'w-[72vw] max-w-[300px] sm:w-72 aspect-square shadow-[0_0_0_9999px_rgba(5,6,15,0.3)]'
                         }`}
                       >
                         <span className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#4da3ff] rounded-tl-xl" />

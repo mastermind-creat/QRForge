@@ -209,7 +209,7 @@ export async function decodeAny(
 
   // 3. Centre-square crop (isolates centered QR inside rectangular badges or frames)
   const minDim = Math.min(width, height);
-  const cropSide = width !== height ? minDim : Math.round(minDim * 0.78);
+  const cropSide = width !== height ? minDim : Math.round(minDim * 0.85);
   const cropX = Math.max(0, Math.round((width - cropSide) / 2));
   const cropY = Math.max(0, Math.round((height - cropSide) / 2));
   const cropTarget = Math.min(1000, cropSide);

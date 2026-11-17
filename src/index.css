@@ -59,11 +59,11 @@
 
 @keyframes scanLine {
   0%, 100% {
-    transform: translateY(-88px);
+    transform: translateY(-112px);
     opacity: 0.45;
   }
   50% {
-    transform: translateY(88px);
+    transform: translateY(112px);
     opacity: 1;
   }
 }
