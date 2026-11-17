@@ -6,18 +6,22 @@ import {
   BookmarkPlus,
   Check,
   FileCode,
-  Sparkles,
   AlertTriangle,
   ZoomIn,
+  ScanLine,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { QRStyleSettings, QRType, SavedQRItem } from '../types/qr';
 import {
   renderQRCodeToCanvas,
   getQRCodeSVG,
+  getEffectiveExportMargin,
   downloadBlob,
   copyCanvasToClipboard,
   shareQRCodeImage,
 } from '../utils/qrRenderer';
+import { decodeAny } from '../lib/decode';
 import { useToast } from '../context/ToastContext';
 
 interface QRPreviewProps {
@@ -48,6 +52,11 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [customName, setCustomName] = useState(suggestedName);
   const [isEnlarged, setIsEnlarged] = useState(false);
+  const [testingScan, setTestingScan] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const { showToast } = useToast();
 
@@ -55,6 +64,11 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
   useEffect(() => {
     setCustomName(suggestedName);
   }, [suggestedName]);
+
+  // Clear previous test scan result when payload or style changes
+  useEffect(() => {
+    setTestResult(null);
+  }, [encodedData, style]);
 
   // Debounced QR code canvas rendering
   useEffect(() => {
@@ -99,6 +113,7 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
         text: encodedData,
         style,
         overrideSize: style.size, // Exact user chosen resolution
+        enforceExportQuietZone: true,
       });
 
       exportCanvas.toBlob((blob) => {
@@ -124,7 +139,7 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
     }
 
     try {
-      const svgString = await getQRCodeSVG(encodedData, style);
+      const svgString = await getQRCodeSVG(encodedData, style, true);
       const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const safeName = (customName || suggestedName || 'qrforge')
         .toLowerCase()
@@ -134,6 +149,59 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
     } catch (err) {
       console.error(err);
       showToast('Failed to generate SVG', 'error');
+    }
+  };
+
+  // 2b. Test Scan exported render using shared decodeAny pipeline
+  const handleTestScan = async () => {
+    if (!encodedData || !isValid || testingScan) return;
+    setTestingScan(true);
+    setTestResult(null);
+
+    try {
+      const testCanvas = document.createElement('canvas');
+      await renderQRCodeToCanvas(testCanvas, {
+        text: encodedData,
+        style,
+        overrideSize: Math.min(Math.max(style.size, 512), 1024),
+        enforceExportQuietZone: true,
+      });
+
+      // Composite onto white if user picked transparent background so decodeAny simulates printed paper
+      let decodeTarget = testCanvas;
+      if (style.bgColor === 'transparent') {
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = testCanvas.width;
+        bgCanvas.height = testCanvas.height;
+        const ctx = bgCanvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+          ctx.drawImage(testCanvas, 0, 0);
+          decodeTarget = bgCanvas;
+        }
+      }
+
+      const hit = await decodeAny(decodeTarget, true);
+      if (hit && hit.data === encodedData) {
+        const msg = `Verified scannable via ${hit.method} (${hit.durationMs}ms)`;
+        setTestResult({ ok: true, message: msg });
+        showToast('Test scan passed!', 'success');
+      } else if (hit && hit.data !== encodedData) {
+        const msg = 'Decoded payload mismatch — check character encoding';
+        setTestResult({ ok: false, message: msg });
+        showToast(msg, 'error');
+      } else {
+        const msg = 'Test scan failed — increase contrast or reduce center logo size';
+        setTestResult({ ok: false, message: msg });
+        showToast('Test scan failed', 'error');
+      }
+    } catch {
+      const msg = 'Could not run scan verification';
+      setTestResult({ ok: false, message: msg });
+      showToast(msg, 'error');
+    } finally {
+      setTestingScan(false);
     }
   };
 
@@ -269,15 +337,33 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
       </div>
 
       {/* Data payload info & capacity notice */}
-      <div className="w-full mt-3 mb-5 px-2">
+      <div className="w-full mt-3 mb-5 px-2 space-y-1.5">
         <div className="flex items-center justify-between text-xs text-white/50">
           <span>Payload: {encodedData.length} bytes</span>
-          <span>Level {style.errorCorrectionLevel}</span>
+          <span>
+            Level {style.errorCorrectionLevel} · Export margin {getEffectiveExportMargin(style)}m
+          </span>
         </div>
         {encodedData.length > 500 && (
-          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-amber-300">
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-300">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>High data density: Higher error correction (Q/H) recommended.</span>
+          </div>
+        )}
+        {testResult && (
+          <div
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border ${
+              testResult.ok
+                ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300'
+                : 'bg-[#ff3b4e]/15 border-[#ff3b4e]/35 text-[#ff8895]'
+            }`}
+          >
+            {testResult.ok ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+            ) : (
+              <XCircle className="w-4 h-4 shrink-0" />
+            )}
+            <span>{testResult.message}</span>
           </div>
         )}
       </div>
@@ -303,8 +389,18 @@ export const QRPreview: React.FC<QRPreviewProps> = ({
         </button>
       </div>
 
-      {/* Secondary Actions Row: Copy, Share, Save to Library */}
-      <div className="w-full grid grid-cols-3 gap-2 mt-2.5">
+      {/* Secondary Actions Row: Test Scan, Copy, Share, Save to Library */}
+      <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5">
+        <button
+          type="button"
+          onClick={handleTestScan}
+          disabled={!isValid || testingScan}
+          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/85 hover:text-white text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 min-h-[44px]"
+        >
+          <ScanLine className={`w-4 h-4 text-[#4da3ff] ${testingScan ? 'animate-pulse' : ''}`} />
+          <span>{testingScan ? 'Testing...' : 'Test scan'}</span>
+        </button>
+
         <button
           onClick={handleCopyImage}
           disabled={!isValid}

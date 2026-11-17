@@ -1,14 +1,14 @@
 import React, { useRef } from 'react';
 import {
   Palette,
-  Sliders,
   ShieldCheck,
   Image as ImageIcon,
   Trash2,
   Upload,
-  Info,
+  AlertTriangle,
 } from 'lucide-react';
-import { ErrorCorrectionLevel, QRStyleSettings } from '../types/qr';
+import { QRStyleSettings } from '../types/qr';
+import { useToast } from '../context/ToastContext';
 
 interface CustomizerProps {
   style: QRStyleSettings;
@@ -33,13 +33,14 @@ const BG_PRESETS = [
 
 export const Customizer: React.FC<CustomizerProps> = ({ style, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPG, SVG, WebP)');
+      showToast('Please upload an image file (PNG, JPG, SVG, WebP)', 'error');
       return;
     }
 
@@ -256,6 +257,14 @@ export const Customizer: React.FC<CustomizerProps> = ({ style, onChange }) => {
               </button>
             ))}
           </div>
+          {style.margin <= 2 && style.bgColor !== 'transparent' && (
+            <div className="flex items-start gap-1.5 pt-1 text-[11px] text-amber-300 leading-snug">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                Margins 0–2 can fail inside dark frames. PNG/SVG exports enforce at least 4 modules.
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -141,3 +141,56 @@ export interface ParsedQRResult {
   jsonPretty?: string;
   securityNote?: string;
 }
+
+export interface RosterCandidate {
+  regNumber: string;
+  normalizedReg: string;
+  name: string;
+}
+
+export type VerificationStatus = 'verified' | 'already_scanned' | 'not_on_roster';
+
+export interface AttendanceScanRecord {
+  id: string;
+  regNumber?: string;
+  candidateName?: string;
+  rawPayload: string;
+  status: VerificationStatus;
+  scannedAt: number;
+  source: 'camera' | 'image' | 'batch';
+  sourceFile?: string;
+}
+
+export interface VerifiedCandidateEntry {
+  regNumber: string;
+  name: string;
+  firstScannedAt: number;
+  lastScannedAt: number;
+  scanCount: number;
+}
+
+export interface ExamSession {
+  id: string;
+  name: string;
+  date: string;
+  paperUnit: string;
+  roster: RosterCandidate[];
+  scans: AttendanceScanRecord[];
+  verifiedByReg: Record<string, VerifiedCandidateEntry>;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BatchItemResult {
+  id: string;
+  fileName: string;
+  pageNumber?: number;
+  file: File;
+  status: 'pending' | 'processing' | 'decoded' | 'failed';
+  rawPayload?: string;
+  decodeMethod?: string;
+  error?: string;
+  verificationStatus?: VerificationStatus;
+  candidateName?: string;
+  regNumber?: string;
+}

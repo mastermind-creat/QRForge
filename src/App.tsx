@@ -136,6 +136,7 @@ function MainApp() {
         text: encodeResult.encoded,
         style,
         overrideSize: style.size,
+        enforceExportQuietZone: true,
       });
 
       exportCanvas.toBlob((blob) => {

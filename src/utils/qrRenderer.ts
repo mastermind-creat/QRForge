@@ -5,21 +5,33 @@ export interface RenderOptions {
   text: string;
   style: QRStyleSettings;
   overrideSize?: number;
+  enforceExportQuietZone?: boolean;
+}
+
+/**
+ * Enforces >= 4 modules quiet zone on exports whenever background is not transparent.
+ */
+export function getEffectiveExportMargin(style: QRStyleSettings): number {
+  if (style.bgColor === 'transparent') {
+    return style.margin;
+  }
+  return Math.max(4, style.margin);
 }
 
 // Generate QR Code onto a canvas with center logo support
 export async function renderQRCodeToCanvas(
   canvas: HTMLCanvasElement,
-  { text, style, overrideSize }: RenderOptions
+  { text, style, overrideSize, enforceExportQuietZone = false }: RenderOptions
 ): Promise<void> {
   const size = overrideSize || style.size;
+  const margin = enforceExportQuietZone ? getEffectiveExportMargin(style) : style.margin;
   canvas.width = size;
   canvas.height = size;
 
   // Render raw QR code to canvas
   await QRCode.toCanvas(canvas, text, {
     width: size,
-    margin: style.margin,
+    margin,
     color: {
       dark: style.fgColor,
       light: style.bgColor === 'transparent' ? '#00000000' : style.bgColor,
@@ -42,7 +54,7 @@ async function drawCenterLogo(
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -112,19 +124,30 @@ async function drawCenterLogo(
 export async function getQRCodeDataUrl(
   text: string,
   style: QRStyleSettings,
-  overrideSize?: number
+  overrideSize?: number,
+  enforceExportQuietZone = false
 ): Promise<string> {
   const offscreen = document.createElement('canvas');
-  await renderQRCodeToCanvas(offscreen, { text, style, overrideSize });
+  await renderQRCodeToCanvas(offscreen, {
+    text,
+    style,
+    overrideSize,
+    enforceExportQuietZone,
+  });
   return offscreen.toDataURL('image/png');
 }
 
 // Generate SVG string
-export async function getQRCodeSVG(text: string, style: QRStyleSettings): Promise<string> {
+export async function getQRCodeSVG(
+  text: string,
+  style: QRStyleSettings,
+  enforceExportQuietZone = false
+): Promise<string> {
+  const margin = enforceExportQuietZone ? getEffectiveExportMargin(style) : style.margin;
   const rawSvg = await QRCode.toString(text, {
     type: 'svg',
     width: style.size,
-    margin: style.margin,
+    margin,
     color: {
       dark: style.fgColor,
       light: style.bgColor === 'transparent' ? '#00000000' : style.bgColor,
