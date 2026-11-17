@@ -33,6 +33,9 @@ import {
   Play,
   Square,
   Repeat,
+  Maximize2,
+  Minimize2,
+  X,
 } from 'lucide-react';
 import {
   BatchItemResult,
@@ -109,6 +112,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
   const [torchOn, setTorchOn] = useState(false);
   const [continuousScan, setContinuousScan] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(true);
 
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -769,6 +773,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
     setSavedToLib(false);
     lastCameraPayloadRef.current = null;
     if (sourceMode === 'camera') {
+      setIsFullscreen(true);
       startCamera(facingMode);
     }
   };
@@ -781,6 +786,31 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
   const activeVerifiedCount = activeSession
     ? Object.keys(activeSession.verifiedByReg).length
     : 0;
+
+  const isViewfinderFullscreen =
+    isFullscreen &&
+    subView === 'scan' &&
+    sourceMode === 'camera' &&
+    (cameraActive || cameraStarting);
+
+  // Lock body scroll and allow Escape key to exit fullscreen scanner
+  useEffect(() => {
+    if (!isViewfinderFullscreen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isViewfinderFullscreen]);
 
   return (
     <div className="space-y-6 pb-20 lg:pb-8">
@@ -928,80 +958,323 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
       {/* === SUB-VIEW 1: LIVE CAMERA & SINGLE IMAGE/PDF SCAN === */}
       {subView === 'scan' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Camera Viewfinder OR Single Image/PDF Dropzone */}
-          <div className="lg:col-span-6 glass-card rounded-3xl p-4 sm:p-6 space-y-4">
-            <div
-              className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10"
-              role="tablist"
-              aria-label="Scanner input source"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sourceMode === 'camera'}
-                onClick={() => {
-                  setSourceMode('camera');
-                  if (!scanResult || (activeSession && continuousScan)) {
-                    startCamera(facingMode);
-                  }
-                }}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
-                  sourceMode === 'camera'
-                    ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
-                    : 'text-white/70 hover:text-white'
-                }`}
+          {/* Left Column: Camera Viewfinder OR Single Image/PDF Dropzone
+              Drop .glass-card when fullscreen so backdrop-filter does not trap fixed positioning */}
+          <div
+            className={
+              isViewfinderFullscreen
+                ? 'lg:col-span-6'
+                : 'lg:col-span-6 glass-card rounded-3xl p-4 sm:p-6 space-y-4'
+            }
+          >
+            {!isViewfinderFullscreen && (
+              <div
+                className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10"
+                role="tablist"
+                aria-label="Scanner input source"
               >
-                <Camera className="w-4 h-4" />
-                <span>Camera</span>
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sourceMode === 'camera'}
+                  onClick={() => {
+                    setSourceMode('camera');
+                    setIsFullscreen(true);
+                    if (!scanResult || (activeSession && continuousScan)) {
+                      startCamera(facingMode);
+                    }
+                  }}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
+                    sourceMode === 'camera'
+                      ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Camera</span>
+                </button>
 
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sourceMode === 'image'}
-                onClick={() => {
-                  setSourceMode('image');
-                  stopCamera();
-                }}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
-                  sourceMode === 'image'
-                    ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4" />
-                <span>Upload Image / PDF</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sourceMode === 'image'}
+                  onClick={() => {
+                    setSourceMode('image');
+                    setIsFullscreen(false);
+                    stopCamera();
+                  }}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all min-h-[44px] ${
+                    sourceMode === 'image'
+                      ? 'bg-gradient-to-r from-[#2f6bff] to-[#4da3ff] text-white shadow-md shadow-[#2f6bff]/30'
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Upload Image / PDF</span>
+                </button>
+              </div>
+            )}
 
             {sourceMode === 'camera' ? (
               <>
-                <div className="relative w-full aspect-square max-h-[380px] mx-auto rounded-2xl overflow-hidden bg-black/70 border border-white/15 flex items-center justify-center">
+                <div
+                  className={
+                    isViewfinderFullscreen
+                      ? 'fixed inset-0 z-[70] bg-black flex flex-col justify-between overflow-hidden'
+                      : 'relative w-full h-[56dvh] min-h-[360px] max-h-[640px] mx-auto rounded-2xl overflow-hidden bg-black/75 border border-white/15 flex items-center justify-center'
+                  }
+                >
                   <video
                     ref={videoRef}
                     muted
                     playsInline
                     className={`w-full h-full object-cover ${
-                      facingMode === 'user' ? '-scale-x-100' : ''
-                    } ${cameraActive ? 'opacity-100' : 'opacity-0'}`}
+                      isViewfinderFullscreen ? 'absolute inset-0' : ''
+                    } ${facingMode === 'user' ? '-scale-x-100' : ''} ${
+                      cameraActive ? 'opacity-100' : 'opacity-0'
+                    }`}
                   />
 
+                  {/* Subtle Vignette + Reticle Overlay when scanning */}
                   {cameraActive && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                      <div className="relative w-52 h-52 sm:w-60 sm:h-60">
-                        <span className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-[#4da3ff] rounded-tl-xl" />
-                        <span className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-[#4da3ff] rounded-tr-xl" />
-                        <span className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-[#4da3ff] rounded-bl-xl" />
-                        <span className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-[#4da3ff] rounded-br-xl" />
+                      <div
+                        className={`relative rounded-2xl ${
+                          isViewfinderFullscreen
+                            ? 'w-64 h-64 sm:w-80 sm:h-80 shadow-[0_0_0_9999px_rgba(5,6,15,0.45)]'
+                            : 'w-56 h-56 sm:w-64 sm:h-64 shadow-[0_0_0_9999px_rgba(5,6,15,0.3)]'
+                        }`}
+                      >
+                        <span className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#4da3ff] rounded-tl-xl" />
+                        <span className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#4da3ff] rounded-tr-xl" />
+                        <span className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#4da3ff] rounded-bl-xl" />
+                        <span className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#4da3ff] rounded-br-xl" />
                         <div className="animate-scan-line absolute left-2 right-2 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-[#4da3ff] to-transparent shadow-[0_0_12px_#4da3ff]" />
                       </div>
                     </div>
                   )}
 
+                  {/* Inline top-right Fullscreen expand trigger */}
+                  {!isViewfinderFullscreen && cameraActive && (
+                    <button
+                      type="button"
+                      onClick={() => setIsFullscreen(true)}
+                      className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-xs font-semibold text-white min-h-[44px]"
+                      aria-label="Expand scanner to full screen"
+                    >
+                      <Maximize2 className="w-4 h-4 text-[#4da3ff]" />
+                      <span>Full Screen</span>
+                    </button>
+                  )}
+
+                  {/* Fullscreen Top HUD */}
+                  {isViewfinderFullscreen && (
+                    <div className="relative z-10 flex items-center justify-between gap-2 px-4 pt-safe pb-4 bg-gradient-to-b from-black/85 via-black/45 to-transparent">
+                      <button
+                        type="button"
+                        onClick={() => setIsFullscreen(false)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black/55 hover:bg-black/75 backdrop-blur-md border border-white/15 text-xs font-semibold text-white min-h-[44px]"
+                        aria-label="Exit full screen scanner"
+                      >
+                        <Minimize2 className="w-4 h-4 text-[#4da3ff]" />
+                        <span>Exit</span>
+                      </button>
+
+                      <div className="min-w-0 text-center px-2">
+                        {activeSession ? (
+                          <>
+                            <p className="text-xs font-bold text-white truncate">
+                              {activeSession.name}
+                            </p>
+                            <p className="text-[11px] font-semibold text-emerald-300 tabular-nums">
+                              {activeVerifiedCount} / {activeSession.roster.length} verified
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs font-bold text-white">QRForge Scanner</p>
+                            <p className="text-[11px] text-white/70">Aim QR code inside frame</p>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {torchSupported && cameraActive && (
+                          <button
+                            type="button"
+                            onClick={handleToggleTorch}
+                            aria-pressed={torchOn}
+                            className={`p-2.5 rounded-xl backdrop-blur-md border min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                              torchOn
+                                ? 'bg-amber-500/30 border-amber-400/60 text-amber-300'
+                                : 'bg-black/55 border-white/15 text-white'
+                            }`}
+                            aria-label={torchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+                          >
+                            <Flashlight className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {activeSession && (
+                          <button
+                            type="button"
+                            onClick={() => setSoundEnabled((v) => !v)}
+                            className="p-2.5 rounded-xl bg-black/55 backdrop-blur-md border border-white/15 text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                            aria-label={soundEnabled ? 'Mute sound' : 'Unmute sound'}
+                          >
+                            {soundEnabled ? (
+                              <Volume2 className="w-4 h-4" />
+                            ) : (
+                              <VolumeX className="w-4 h-4 text-white/50" />
+                            )}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleSwitchCamera}
+                          className="p-2.5 rounded-xl bg-black/55 hover:bg-black/75 backdrop-blur-md border border-white/15 text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                          aria-label="Switch front or back camera"
+                        >
+                          <SwitchCamera className="w-4 h-4 text-[#4da3ff]" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fullscreen Bottom HUD: Live Verification Card + Quick Navigation */}
+                  {isViewfinderFullscreen && (
+                    <div className="relative z-10 px-4 pb-safe pt-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-3 mt-auto">
+                      {lastVerification && (
+                        <div
+                          className={`max-w-lg mx-auto p-3.5 rounded-2xl backdrop-blur-xl border flex items-start gap-3 shadow-2xl ${
+                            lastVerification.status === 'verified'
+                              ? 'bg-emerald-950/85 border-emerald-400/50 text-emerald-100'
+                              : lastVerification.status === 'already_scanned'
+                              ? 'bg-amber-950/85 border-amber-400/50 text-amber-100'
+                              : 'bg-rose-950/85 border-[#ff3b4e]/60 text-rose-100'
+                          }`}
+                        >
+                          {lastVerification.status === 'verified' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                          ) : lastVerification.status === 'already_scanned' ? (
+                            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-[#ff6b7a] shrink-0 mt-0.5" />
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold uppercase tracking-wider opacity-85">
+                              {lastVerification.status === 'verified'
+                                ? 'Verified Candidate'
+                                : lastVerification.status === 'already_scanned'
+                                ? 'Already Scanned'
+                                : 'Not on Roster'}
+                            </p>
+                            <p className="text-sm font-bold text-white truncate">
+                              {lastVerification.candidateName || 'Unrecognized Payload'}
+                            </p>
+                            {lastVerification.regNumber && (
+                              <p className="text-xs font-mono opacity-80 truncate">
+                                {lastVerification.regNumber}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setIsFullscreen(false)}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-[11px] font-semibold text-white min-h-[36px]"
+                            >
+                              Details
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setLastVerification(null)}
+                              className="p-1.5 rounded-lg text-white/70 hover:text-white min-h-[36px] min-w-[36px] flex items-center justify-center"
+                              aria-label="Dismiss banner"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="max-w-lg mx-auto flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFullscreen(false);
+                            setSourceMode('image');
+                            stopCamera();
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/20 backdrop-blur-md border border-white/15 text-xs font-semibold text-white min-h-[44px]"
+                        >
+                          <Upload className="w-4 h-4 text-[#4da3ff]" />
+                          <span>Upload</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFullscreen(false);
+                            setSubView('batch');
+                            stopCamera();
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/20 backdrop-blur-md border border-white/15 text-xs font-semibold text-white min-h-[44px]"
+                        >
+                          <Layers className="w-4 h-4 text-[#4da3ff]" />
+                          <span>Batch</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFullscreen(false);
+                            setSubView('sessions');
+                            stopCamera();
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/20 backdrop-blur-md border border-white/15 text-xs font-semibold text-white min-h-[44px]"
+                        >
+                          <ClipboardList className="w-4 h-4 text-[#4da3ff]" />
+                          <span>Sessions</span>
+                        </button>
+
+                        {activeSession && (
+                          <button
+                            type="button"
+                            onClick={() => setContinuousScan((v) => !v)}
+                            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl backdrop-blur-md border text-xs font-semibold min-h-[44px] ${
+                              continuousScan
+                                ? 'bg-[#2f6bff]/35 border-[#4da3ff]/60 text-white'
+                                : 'bg-white/15 border-white/15 text-white/75'
+                            }`}
+                          >
+                            <Repeat className="w-4 h-4" />
+                            <span>{continuousScan ? 'Continuous' : 'Single'}</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            stopCamera();
+                            setIsFullscreen(false);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#ff3b4e]/25 hover:bg-[#ff3b4e]/40 backdrop-blur-md border border-[#ff3b4e]/45 text-xs font-semibold text-[#ffb3bb] min-h-[44px]"
+                        >
+                          <CameraOff className="w-4 h-4" />
+                          <span>Stop</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {cameraStarting && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm p-6 text-center">
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm p-6 text-center">
                       <div className="w-9 h-9 rounded-full border-3 border-[#4da3ff]/20 border-t-[#4da3ff] animate-spin" />
-                      <span className="text-xs font-medium text-white/80">
+                      <span className="text-xs font-medium text-white/85">
                         Initializing camera...
                       </span>
                     </div>
@@ -1059,60 +1332,63 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
                   )}
                 </div>
 
-                {/* Camera Controls */}
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSwitchCamera}
-                    className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all min-h-[44px]"
-                  >
-                    <SwitchCamera className="w-4 h-4 text-[#4da3ff]" />
-                    <span>{facingMode === 'environment' ? 'Back Camera' : 'Front Camera'}</span>
-                  </button>
+                {/* Inline Camera Controls */}
+                {!isViewfinderFullscreen && (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSwitchCamera}
+                      className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-all min-h-[44px]"
+                    >
+                      <SwitchCamera className="w-4 h-4 text-[#4da3ff]" />
+                      <span>{facingMode === 'environment' ? 'Back Camera' : 'Front Camera'}</span>
+                    </button>
 
-                  <div className="flex items-center gap-2">
-                    {torchSupported && cameraActive && (
-                      <button
-                        type="button"
-                        onClick={handleToggleTorch}
-                        aria-pressed={torchOn}
-                        className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all min-h-[44px] ${
-                          torchOn
-                            ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80'
-                        }`}
-                      >
-                        <Flashlight className="w-4 h-4" />
-                        <span>{torchOn ? 'Flash On' : 'Flash'}</span>
-                      </button>
-                    )}
-
-                    {cameraActive ? (
-                      <button
-                        type="button"
-                        onClick={stopCamera}
-                        className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#ff3b4e]/15 hover:bg-[#ff3b4e]/25 border border-[#ff3b4e]/30 text-xs font-semibold text-[#ff6b7a] min-h-[44px]"
-                      >
-                        <CameraOff className="w-4 h-4" />
-                        <span>Stop</span>
-                      </button>
-                    ) : (
-                      !cameraStarting && (
+                    <div className="flex items-center gap-2">
+                      {torchSupported && cameraActive && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setScanResult(null);
-                            startCamera(facingMode);
-                          }}
-                          className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#2f6bff]/20 hover:bg-[#2f6bff]/30 border border-[#2f6bff]/40 text-xs font-semibold text-[#4da3ff] min-h-[44px]"
+                          onClick={handleToggleTorch}
+                          aria-pressed={torchOn}
+                          className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all min-h-[44px] ${
+                            torchOn
+                              ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                              : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80'
+                          }`}
                         >
-                          <Camera className="w-4 h-4" />
-                          <span>Start Camera</span>
+                          <Flashlight className="w-4 h-4" />
+                          <span>{torchOn ? 'Flash On' : 'Flash'}</span>
                         </button>
-                      )
-                    )}
+                      )}
+
+                      {cameraActive ? (
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#ff3b4e]/15 hover:bg-[#ff3b4e]/25 border border-[#ff3b4e]/30 text-xs font-semibold text-[#ff6b7a] min-h-[44px]"
+                        >
+                          <CameraOff className="w-4 h-4" />
+                          <span>Stop</span>
+                        </button>
+                      ) : (
+                        !cameraStarting && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScanResult(null);
+                              setIsFullscreen(true);
+                              startCamera(facingMode);
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#2f6bff]/20 hover:bg-[#2f6bff]/30 border border-[#2f6bff]/40 text-xs font-semibold text-[#4da3ff] min-h-[44px]"
+                          >
+                            <Camera className="w-4 h-4" />
+                            <span>Start Camera</span>
+                          </button>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             ) : (
               /* Single Image / PDF Upload / Drop / Paste Area */
