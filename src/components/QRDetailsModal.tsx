@@ -75,6 +75,7 @@ export const QRDetailsModal: React.FC<QRDetailsModalProps> = ({
       text: item.encodedData,
       style: item.style,
       overrideSize: item.style.size || 1024,
+      enforceExportQuietZone: true,
     });
 
     exportCanvas.toBlob((blob) => {
@@ -88,7 +89,7 @@ export const QRDetailsModal: React.FC<QRDetailsModalProps> = ({
 
   const handleDownloadSVG = async () => {
     try {
-      const svg = await getQRCodeSVG(item.encodedData, item.style);
+      const svg = await getQRCodeSVG(item.encodedData, item.style, true);
       const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const safeName = item.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
       downloadBlob(blob, `${safeName}.svg`);
